@@ -125,9 +125,8 @@ Focus areas:
 ---
 
 ## 📄 License
-Code: MIT License
-
-Content (blog posts) © Simoncjl. All rights reserved.
+Code is licensed under the **MIT License**.  
+Blog content is © Simoncjl. All rights reserved.
 
 See LICENSE for details.
 
