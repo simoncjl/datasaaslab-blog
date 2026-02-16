@@ -82,6 +82,12 @@ npm run preview
 ```bash
 npm run new:post -- --slug my-post-slug --title_fr "Titre FR" --title_en "Title EN"
 ```
+Required flags:
+
+- `--slug` (kebab-case)
+- `--title_fr`
+- `--title_en`
+
 This generates:
 
 `src/content/blog/fr/my-post-slug.mdx`
@@ -89,6 +95,7 @@ This generates:
 `src/content/blog/en/my-post-slug.mdx`
 
 Posts are created as drafts by default.
+The command fails without writing files if either target file already exists.
 
 ---
 
