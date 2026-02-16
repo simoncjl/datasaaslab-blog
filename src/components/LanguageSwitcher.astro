@@ -1,10 +1,34 @@
 ---
-import { localeFromPathname, switchLocalePath } from '../lib/i18n';
+import { getCollection } from 'astro:content';
+import {
+  FALLBACK_BY_LOCALE,
+  localeFromPathname,
+  normalizePathname,
+  switchLocalePath,
+} from '../lib/i18n';
 
 const pathname = Astro.url.pathname;
 const currentLocale = localeFromPathname(pathname);
 const targetLocale = currentLocale === 'fr' ? 'en' : 'fr';
-const targetPath = switchLocalePath(pathname, targetLocale);
+const normalizedPath = normalizePathname(pathname);
+
+let targetPath = switchLocalePath(pathname, targetLocale);
+const blogPostMatch = normalizedPath.match(/^\/(fr|en)\/blog\/([^/]+)$/);
+
+if (blogPostMatch) {
+  const slug = blogPostMatch[2];
+  const includeDrafts = import.meta.env.DEV;
+  const targetLangPosts = await getCollection(
+    'blog',
+    ({ data }) => data.lang === targetLocale && (includeDrafts || !data.draft),
+  );
+  const equivalentExists = targetLangPosts.some((post) => {
+    const postSlug = post.id.split('/').pop() ?? post.id;
+    return postSlug === slug;
+  });
+
+  targetPath = equivalentExists ? `/${targetLocale}/blog/${slug}` : FALLBACK_BY_LOCALE[targetLocale];
+}
 ---
 
 <a class="language-switcher" href={targetPath} hreflang={targetLocale}>

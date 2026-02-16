@@ -1,0 +1,73 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { LOCALES, type Locale } from '../../../lib/i18n';
+import { buildAbsoluteUrl } from '../../../lib/seo';
+
+export function getStaticPaths() {
+  return LOCALES.map((lang) => ({ params: { lang } }));
+}
+
+const langParam = Astro.params.lang;
+if (!langParam || !LOCALES.includes(langParam as Locale)) {
+  return Astro.redirect('/fr/blog', 302);
+}
+
+const lang = langParam as Locale;
+const includeDrafts = import.meta.env.DEV;
+
+const posts = (await getCollection(
+  'blog',
+  ({ data }) => data.lang === lang && (includeDrafts || !data.draft),
+)).sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+
+const pageTitle = lang === 'fr' ? 'Blog | DataSaaSLab' : 'Blog | DataSaaSLab';
+const pageDescription =
+  lang === 'fr'
+    ? 'Articles DataSaaSLab en francais.'
+    : 'DataSaaSLab articles in English.';
+
+const canonicalPath = `/${lang}/blog`;
+const canonicalUrl = buildAbsoluteUrl(canonicalPath);
+const frAltUrl = buildAbsoluteUrl('/fr/blog');
+const enAltUrl = buildAbsoluteUrl('/en/blog');
+
+const formatDate = (value: Date) =>
+  new Intl.DateTimeFormat(lang === 'fr' ? 'fr-FR' : 'en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }).format(value);
+---
+
+<BaseLayout title={pageTitle}>
+  <Fragment slot="head">
+    {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+    {frAltUrl && <link rel="alternate" hreflang="fr" href={frAltUrl} />}
+    {enAltUrl && <link rel="alternate" hreflang="en" href={enAltUrl} />}
+    <meta name="description" content={pageDescription} />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={pageDescription} />
+    {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
+  </Fragment>
+
+  <section>
+    <h1>{lang === 'fr' ? 'Blog' : 'Blog'}</h1>
+    {posts.length === 0 ? (
+      <p>{lang === 'fr' ? 'Aucun article pour le moment.' : 'No posts yet.'}</p>
+    ) : (
+      <ul>
+        {posts.map((post) => {
+          const slug = post.id.split('/').pop() ?? post.id;
+          return (
+            <li>
+              <a href={`/${lang}/blog/${slug}`}>{post.data.title}</a>
+              <small> - {formatDate(post.data.date)}</small>
+            </li>
+          );
+        })}
+      </ul>
+    )}
+  </section>
+</BaseLayout>

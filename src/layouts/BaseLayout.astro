@@ -20,6 +20,7 @@ const currentLocale = localeFromPathname(Astro.url.pathname);
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
+    <slot name="head" />
   </head>
   <body>
     <header class="site-header">

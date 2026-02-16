@@ -1,0 +1,118 @@
+---
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { LOCALES, type Locale } from '../../../lib/i18n';
+import { buildAbsoluteUrl } from '../../../lib/seo';
+
+interface Props {
+  entry: CollectionEntry<'blog'> | null;
+  otherLangEntry: CollectionEntry<'blog'> | null;
+}
+
+function slugFromId(id: string): string {
+  return id.split('/').pop() ?? id;
+}
+
+export async function getStaticPaths() {
+  const includeDrafts = import.meta.env.DEV;
+  const entries = await getCollection('blog', ({ data }) => includeDrafts || !data.draft);
+
+  const entryByKey = new Map<string, CollectionEntry<'blog'>>();
+  const slugs = new Set<string>();
+
+  for (const entry of entries) {
+    const slug = slugFromId(entry.id);
+    slugs.add(slug);
+    entryByKey.set(`${entry.data.lang}:${slug}`, entry);
+  }
+
+  const paths: Array<{
+    params: { lang: Locale; slug: string };
+    props: Props;
+  }> = [];
+
+  for (const slug of slugs) {
+    for (const lang of LOCALES) {
+      const otherLang = lang === 'fr' ? 'en' : 'fr';
+      paths.push({
+        params: { lang, slug },
+        props: {
+          entry: entryByKey.get(`${lang}:${slug}`) ?? null,
+          otherLangEntry: entryByKey.get(`${otherLang}:${slug}`) ?? null,
+        },
+      });
+    }
+  }
+
+  return paths;
+}
+
+const langParam = Astro.params.lang;
+const slug = Astro.params.slug;
+
+if (!langParam || !LOCALES.includes(langParam as Locale) || !slug) {
+  return Astro.redirect('/fr/blog', 302);
+}
+
+const lang = langParam as Locale;
+const { entry, otherLangEntry } = Astro.props as Props;
+
+if (!entry && otherLangEntry) {
+  return Astro.redirect(`/${otherLangEntry.data.lang}/blog/${slug}`, 302);
+}
+
+if (!entry) {
+  Astro.response.status = 404;
+}
+
+const postTitle = entry ? `${entry.data.title} | DataSaaSLab` : '404 | DataSaaSLab';
+const postDescription = entry?.data.description ?? 'Post not found.';
+const canonicalPath = `/${lang}/blog/${slug}`;
+const canonicalUrl = buildAbsoluteUrl(canonicalPath);
+
+const frEquivalent =
+  entry && entry.data.lang === 'fr'
+    ? entry
+    : otherLangEntry?.data.lang === 'fr'
+      ? otherLangEntry
+      : null;
+
+const enEquivalent =
+  entry && entry.data.lang === 'en'
+    ? entry
+    : otherLangEntry?.data.lang === 'en'
+      ? otherLangEntry
+      : null;
+
+const frAltUrl = frEquivalent ? buildAbsoluteUrl(`/fr/blog/${slug}`) : null;
+const enAltUrl = enEquivalent ? buildAbsoluteUrl(`/en/blog/${slug}`) : null;
+
+const rendered = entry ? await render(entry) : null;
+const Content = rendered?.Content;
+---
+
+<BaseLayout title={postTitle}>
+  <Fragment slot="head">
+    {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+    {frAltUrl && <link rel="alternate" hreflang="fr" href={frAltUrl} />}
+    {enAltUrl && <link rel="alternate" hreflang="en" href={enAltUrl} />}
+    <meta name="description" content={postDescription} />
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content={postTitle} />
+    <meta property="og:description" content={postDescription} />
+    {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
+  </Fragment>
+
+  {entry && Content ? (
+    <article>
+      <h1>{entry.data.title}</h1>
+      <p>{entry.data.description}</p>
+      <Content />
+    </article>
+  ) : (
+    <section>
+      <h1>404</h1>
+      <p>Post not found.</p>
+    </section>
+  )}
+</BaseLayout>
