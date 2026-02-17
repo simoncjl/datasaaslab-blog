@@ -10,8 +10,8 @@
     "new:post": "node scripts/new-post.mjs"
   },
   "dependencies": {
+    "@astrojs/cloudflare": "^12.6.12",
     "@astrojs/mdx": "^4.3.13",
-    "@astrojs/node": "^9.5.3",
     "@astrojs/sitemap": "^3.7.0",
     "astro": "^5.17.1"
   },
