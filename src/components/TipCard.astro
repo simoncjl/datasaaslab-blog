@@ -7,10 +7,11 @@ interface Props {
   description: string;
   date: Date;
   lang: 'fr' | 'en';
+  readingTimeMinutes?: number;
   aiAssisted?: boolean;
 }
 
-const { href, title, description, date, lang, aiAssisted = false } = Astro.props;
+const { href, title, description, date, lang, readingTimeMinutes, aiAssisted = false } = Astro.props;
 
 const formattedDate = new Intl.DateTimeFormat(lang === 'fr' ? 'fr-FR' : 'en-US', {
   year: 'numeric',
@@ -26,7 +27,10 @@ const formattedDate = new Intl.DateTimeFormat(lang === 'fr' ? 'fr-FR' : 'en-US',
       <span class="badge">{lang.toUpperCase()}</span>
       <Badges aiAssisted={aiAssisted} />
     </div>
-    <time datetime={date.toISOString()}>{formattedDate}</time>
+    <div class="card-meta-right">
+      <time datetime={date.toISOString()}>{formattedDate}</time>
+      {readingTimeMinutes && <span>{`• ${readingTimeMinutes} min`}</span>}
+    </div>
   </div>
   <h3>{title}</h3>
   <p>{description}</p>

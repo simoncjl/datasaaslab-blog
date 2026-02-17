@@ -1,9 +1,9 @@
 ---
 import { getCollection } from 'astro:content';
-import BaseLayout from '../../../layouts/BaseLayout.astro';
-import { LOCALES, type Locale } from '../../../lib/i18n';
-import { buildAbsoluteUrl } from '../../../lib/seo';
-import { estimateReadingTime } from '../../../lib/readingTime';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { LOCALES, type Locale } from '../../lib/i18n';
+import { buildAbsoluteUrl } from '../../lib/seo';
+import { estimateReadingTime } from '../../lib/readingTime';
 
 export function getStaticPaths() {
   return LOCALES.map((lang) => ({ params: { lang } }));
@@ -11,28 +11,27 @@ export function getStaticPaths() {
 
 const langParam = Astro.params.lang;
 if (!langParam || !LOCALES.includes(langParam as Locale)) {
-  return Astro.redirect('/fr/blog', 302);
+  return Astro.redirect('/fr/tips', 302);
 }
 
 const lang = langParam as Locale;
 const includeDrafts = import.meta.env.DEV;
 
-const posts = (await getCollection(
+const tips = (await getCollection(
   'blog',
-  ({ data }) => data.lang === lang && data.kind === 'post' && (includeDrafts || !data.draft),
+  ({ data }) => data.lang === lang && data.kind === 'tip' && (includeDrafts || !data.draft),
 )).sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 
-const availableTags = [...new Set(posts.flatMap((post) => post.data.tags ?? []))].sort((a, b) =>
-  a.localeCompare(b),
-);
+const availableTags = [...new Set(tips.flatMap((tip) => tip.data.tags ?? []))].sort((a, b) => a.localeCompare(b));
 
-const pageTitle = 'Blog | DataSaaSLab';
-const pageDescription = lang === 'fr' ? 'Articles DataSaaSLab en francais.' : 'DataSaaSLab articles in English.';
+const pageTitle = lang === 'fr' ? 'Astuces | DataSaaSLab' : 'Tips | DataSaaSLab';
+const pageDescription =
+  lang === 'fr' ? 'Astuces courtes et actionnables de DataSaaSLab.' : 'Short, practical tips from DataSaaSLab.';
 
-const canonicalPath = `/${lang}/blog`;
+const canonicalPath = `/${lang}/tips`;
 const canonicalUrl = buildAbsoluteUrl(canonicalPath);
-const frAltUrl = buildAbsoluteUrl('/fr/blog');
-const enAltUrl = buildAbsoluteUrl('/en/blog');
+const frAltUrl = buildAbsoluteUrl('/fr/tips');
+const enAltUrl = buildAbsoluteUrl('/en/tips');
 
 const formatDate = (value: Date) =>
   new Intl.DateTimeFormat(lang === 'fr' ? 'fr-FR' : 'en-US', {
@@ -55,20 +54,20 @@ const formatDate = (value: Date) =>
   </Fragment>
 
   <section>
-    <h1>Blog</h1>
+    <h1>{lang === 'fr' ? 'Astuces' : 'Tips'}</h1>
 
-    {posts.length === 0 ? (
-      <p>{lang === 'fr' ? 'Aucun article pour le moment.' : 'No posts yet.'}</p>
+    {tips.length === 0 ? (
+      <p>{lang === 'fr' ? 'Aucune astuce pour le moment.' : 'No tips yet.'}</p>
     ) : (
       <>
         {availableTags.length > 0 && (
           <div class="tag-chip-row page-tag-row">
             {availableTags.map((tag) => (
-              <a class="tag-chip" href={`/${lang}/blog?tag=${encodeURIComponent(tag)}`} data-filter-link data-tag={tag}>
+              <a class="tag-chip" href={`/${lang}/tips?tag=${encodeURIComponent(tag)}`} data-filter-link data-tag={tag}>
                 {tag}
               </a>
             ))}
-            <a class="filter-clear-link" href={`/${lang}/blog`} data-filter-clear hidden>
+            <a class="filter-clear-link" href={`/${lang}/tips`} data-filter-clear hidden>
               {lang === 'fr' ? 'Effacer' : 'Clear'}
             </a>
           </div>
@@ -77,18 +76,18 @@ const formatDate = (value: Date) =>
         <p class="filter-meta" data-filter-meta></p>
 
         <ul class="blog-post-list" data-post-list>
-          {posts.map((post) => {
-            const slug = post.id.split('/').pop() ?? post.id;
-            const tags = post.data.tags ?? [];
-            const reading = estimateReadingTime(post.body).minutes;
+          {tips.map((tip) => {
+            const slug = tip.id.split('/').pop() ?? tip.id;
+            const tags = tip.data.tags ?? [];
+            const reading = estimateReadingTime(tip.body).minutes;
             return (
               <li data-post-item data-tags={tags.map((tag) => tag.toLowerCase()).join(',')}>
-                <a href={`/${lang}/blog/${slug}`}>{post.data.title}</a>
-                <small>{` - ${formatDate(post.data.date)} • ${reading} min`}</small>
+                <a href={`/${lang}/blog/${slug}`}>{tip.data.title}</a>
+                <small>{` - ${formatDate(tip.data.date)} • ${reading} min`}</small>
                 {tags.length > 0 && (
                   <div class="post-tags">
                     {tags.map((tag) => (
-                      <a class="post-tag" href={`/${lang}/blog?tag=${encodeURIComponent(tag)}`} data-filter-link data-tag={tag}>
+                      <a class="post-tag" href={`/${lang}/tips?tag=${encodeURIComponent(tag)}`} data-filter-link data-tag={tag}>
                         {tag}
                       </a>
                     ))}

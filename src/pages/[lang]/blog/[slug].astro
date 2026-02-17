@@ -9,6 +9,48 @@ interface Props {
   otherLangEntry: CollectionEntry<'blog'> | null;
 }
 
+interface TocItem {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+function slugifyHeading(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-');
+}
+
+function extractHeadingsFromBody(body: string): TocItem[] {
+  const seen = new Map<string, number>();
+  const headings: TocItem[] = [];
+
+  for (const line of body.split('\n')) {
+    const match = line.match(/^(#{1,3})\s+(.+?)\s*$/);
+    if (!match) continue;
+
+    const depth = match[1].length;
+    const rawText = match[2]
+      .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+      .replace(/[`*_~]/g, '')
+      .trim();
+    if (!rawText) continue;
+
+    const baseSlug = slugifyHeading(rawText);
+    if (!baseSlug) continue;
+
+    const count = seen.get(baseSlug) ?? 0;
+    seen.set(baseSlug, count + 1);
+    const slug = count === 0 ? baseSlug : `${baseSlug}-${count}`;
+
+    headings.push({ depth, slug, text: rawText });
+  }
+
+  return headings;
+}
+
 export async function getStaticPaths() {
   const includeDrafts = import.meta.env.DEV;
   const entries = await getCollection('blog', ({ data }) => includeDrafts || !data.draft);
@@ -67,27 +109,29 @@ const canonicalPath = `/${lang}/blog/${slug}`;
 const canonicalUrl = buildAbsoluteUrl(canonicalPath);
 
 const frEquivalent =
-  entry && entry.data.lang === 'fr'
-    ? entry
-    : otherLangEntry?.data.lang === 'fr'
-      ? otherLangEntry
-      : null;
+  entry && entry.data.lang === 'fr' ? entry : otherLangEntry?.data.lang === 'fr' ? otherLangEntry : null;
 
 const enEquivalent =
-  entry && entry.data.lang === 'en'
-    ? entry
-    : otherLangEntry?.data.lang === 'en'
-      ? otherLangEntry
-      : null;
+  entry && entry.data.lang === 'en' ? entry : otherLangEntry?.data.lang === 'en' ? otherLangEntry : null;
 
 const frAltUrl = frEquivalent ? buildAbsoluteUrl(`/fr/blog/${slug}`) : null;
 const enAltUrl = enEquivalent ? buildAbsoluteUrl(`/en/blog/${slug}`) : null;
 
 const rendered = entry ? await render(entry) : null;
 const Content = rendered?.Content;
+
+const tocFromRender: TocItem[] = (rendered?.headings ?? [])
+  .filter((heading) => heading.depth <= 3)
+  .map((heading) => ({
+    depth: heading.depth,
+    slug: heading.slug,
+    text: heading.text,
+  }));
+
+const tocItems = tocFromRender.length > 0 ? tocFromRender : entry ? extractHeadingsFromBody(entry.body) : [];
 ---
 
-<BaseLayout title={postTitle}>
+<BaseLayout title={postTitle} description={postDescription}>
   <Fragment slot="head">
     {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
     {frAltUrl && <link rel="alternate" hreflang="fr" href={frAltUrl} />}
@@ -100,18 +144,33 @@ const Content = rendered?.Content;
   </Fragment>
 
   {entry && Content ? (
-    <article class="prose">
-      {entry.data.ai_assisted && (
-        <p class="ai-assisted-note">
-          {entry.data.lang === 'fr'
-            ? 'AI-assisted · Revu par un humain'
-            : 'AI-assisted · Human-reviewed'}
-        </p>
+    <div class="article-layout">
+      <article class="prose article-main">
+        {entry.data.ai_assisted && (
+          <p class="ai-assisted-note">
+            {entry.data.lang === 'fr' ? 'AI-assisted · Revu par un humain' : 'AI-assisted · Human-reviewed'}
+          </p>
+        )}
+        <h1>{entry.data.title}</h1>
+        <p>{entry.data.description}</p>
+        <Content />
+      </article>
+
+      {tocItems.length > 0 && (
+        <aside class="toc-sidebar" aria-label={lang === 'fr' ? 'Table des matieres' : 'Table of contents'}>
+          <nav class="toc-nav">
+            <p class="toc-title">{lang === 'fr' ? 'Sur cette page' : 'On this page'}</p>
+            <ul>
+              {tocItems.map((item) => (
+                <li class={`toc-item depth-${item.depth}`}>
+                  <a href={`#${item.slug}`}>{item.text}</a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </aside>
       )}
-      <h1>{entry.data.title}</h1>
-      <p>{entry.data.description}</p>
-      <Content />
-    </article>
+    </div>
   ) : (
     <section>
       <h1>404</h1>

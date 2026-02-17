@@ -284,6 +284,13 @@ p {
   gap: 0.35rem;
 }
 
+.card-meta-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
 .badge {
   display: inline-flex;
   align-items: center;
@@ -375,18 +382,33 @@ p {
 }
 
 .tag-chip {
+  display: inline-flex;
+  align-items: center;
   padding: 0.3rem 0.65rem;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: #0f172a;
   color: var(--text);
   cursor: pointer;
+  text-decoration: none;
 }
 
 .tag-chip.is-active {
   border-color: var(--accent);
   color: var(--accent);
   font-weight: 600;
+}
+
+.page-tag-row {
+  margin-top: 0.75rem;
+  margin-bottom: 0.4rem;
+}
+
+.filter-clear-link {
+  color: var(--muted);
+  text-decoration: underline;
+  font-size: 0.88rem;
+  align-self: center;
 }
 
 .filter-meta {
@@ -419,10 +441,68 @@ p {
   border-radius: 999px;
   border: 1px solid var(--border);
   color: var(--muted);
+  text-decoration: none;
 }
 
 .prose {
   max-width: 75ch;
+}
+
+.article-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 2rem;
+  align-items: start;
+}
+
+.article-main {
+  min-width: 0;
+}
+
+.toc-sidebar {
+  position: sticky;
+  top: 5.4rem;
+}
+
+.toc-nav {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #0b1322;
+  padding: 0.8rem;
+}
+
+.toc-title {
+  color: #cbd5e1;
+  font-size: 0.86rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 0.55rem;
+}
+
+.toc-nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.42rem;
+}
+
+.toc-item a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.toc-item a:hover {
+  color: #dbeafe;
+}
+
+.toc-item.depth-2 {
+  padding-left: 0.6rem;
+}
+
+.toc-item.depth-3 {
+  padding-left: 1.2rem;
 }
 
 .ai-assisted-note {
@@ -484,6 +564,10 @@ p {
   .posts-grid {
     grid-template-columns: 1fr;
   }
+
+  .card-meta {
+    flex-wrap: wrap;
+  }
 }
 
 @media (min-width: 721px) and (max-width: 980px) {
@@ -495,5 +579,13 @@ p {
 @media (max-width: 860px) {
   .home-top-grid {
     grid-template-columns: 1fr;
+  }
+
+  .article-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .toc-sidebar {
+    display: none;
   }
 }

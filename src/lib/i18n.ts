@@ -16,6 +16,10 @@ const EQUIVALENT_PATHS = new Set<string>([
   '/fr/blog/',
   '/en/blog',
   '/en/blog/',
+  '/fr/tips',
+  '/fr/tips/',
+  '/en/tips',
+  '/en/tips/',
 ]);
 
 export function normalizePathname(pathname: string): string {

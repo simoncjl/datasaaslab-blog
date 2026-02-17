@@ -3,6 +3,7 @@ import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PostCard from '../components/PostCard.astro';
 import { localeFromPathname } from '../lib/i18n';
+import { estimateReadingTime } from '../lib/readingTime';
 
 const includeDrafts = import.meta.env.DEV;
 const lang = localeFromPathname(Astro.url.pathname);
@@ -34,8 +35,8 @@ const tipDateFormat = new Intl.DateTimeFormat(lang === 'fr' ? 'fr-FR' : 'en-US',
           applied AI.
         </p>
         <div class="cta-row">
-          <a class="button" href="/tips">Explore Tips</a>
-          <a class="button button-secondary" href="/blog">Read Blog Posts</a>
+          <a class="button" href={`/${lang}/tips`}>Explore Tips</a>
+          <a class="button button-secondary" href={`/${lang}/blog`}>Read Blog Posts</a>
         </div>
       </div>
     </section>
@@ -77,6 +78,7 @@ const tipDateFormat = new Intl.DateTimeFormat(lang === 'fr' ? 'fr-FR' : 'en-US',
               description={post.data.description}
               date={post.data.date}
               lang={post.data.lang}
+              readingTimeMinutes={estimateReadingTime(post.body).minutes}
               aiAssisted={post.data.ai_assisted}
             />
           );
