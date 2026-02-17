@@ -2,7 +2,6 @@
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PostCard from '../components/PostCard.astro';
-import TipCard from '../components/TipCard.astro';
 import { localeFromPathname } from '../lib/i18n';
 
 const includeDrafts = import.meta.env.DEV;
@@ -18,44 +17,48 @@ const latestPosts = entries
   .filter((entry) => entry.data.kind === 'post' && entry.data.lang === lang)
   .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
   .slice(0, 6);
+
+const tipDateFormat = new Intl.DateTimeFormat(lang === 'fr' ? 'fr-FR' : 'en-US', {
+  month: 'short',
+  day: 'numeric',
+});
 ---
 
 <BaseLayout title="DataSaaSLab">
-  <section class="hero hero-bg">
-    <div class="hero-content">
-      <h1>DataSaaSLab</h1>
-      <p class="hero-subtitle">
-        AI-assisted writing with human quality gates. Browse quick tips or go deep with long-form technical posts.
-      </p>
-      <div class="cta-row">
-        <a class="button" href="/tips">Explore Tips</a>
-        <a class="button button-secondary" href="/blog">Read Blog Posts</a>
+  <section class="home-top-grid">
+    <section class="hero hero-compact">
+      <div class="hero-content">
+        <h1>DataSaaSLab</h1>
+        <p class="hero-subtitle">
+          AI-assisted writing with human quality gates. Practical tips and technical deep dives on data, SaaS, and
+          applied AI.
+        </p>
+        <div class="cta-row">
+          <a class="button" href="/tips">Explore Tips</a>
+          <a class="button button-secondary" href="/blog">Read Blog Posts</a>
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <section class="latest-block">
-    <h2>Latest Tips</h2>
-    {latestTips.length === 0 ? (
-      <p>No tips yet.</p>
-    ) : (
-      <div class="section-grid">
-        {latestTips.map((tip) => {
-          const slug = tip.id.split('/').pop() ?? tip.id;
-          const href = `/${tip.data.lang}/blog/${slug}`;
-          return (
-            <TipCard
-              href={href}
-              title={tip.data.title}
-              description={tip.data.description}
-              date={tip.data.date}
-              lang={tip.data.lang}
-              aiAssisted={tip.data.ai_assisted}
-            />
-          );
-        })}
-      </div>
-    )}
+    <section class="latest-tips-panel">
+      <h2>Latest Tips</h2>
+      {latestTips.length === 0 ? (
+        <p>No tips yet.</p>
+      ) : (
+        <ul class="tips-compact-list">
+          {latestTips.slice(0, 4).map((tip) => {
+            const slug = tip.id.split('/').pop() ?? tip.id;
+            const href = `/${tip.data.lang}/blog/${slug}`;
+            return (
+              <li>
+                <a href={href}>{tip.data.title}</a>
+                <small>{tipDateFormat.format(tip.data.date)}</small>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   </section>
 
   <section class="latest-block">
@@ -63,7 +66,7 @@ const latestPosts = entries
     {latestPosts.length === 0 ? (
       <p>No posts yet.</p>
     ) : (
-      <div class="section-grid">
+      <div class="posts-grid">
         {latestPosts.map((post) => {
           const slug = post.id.split('/').pop() ?? post.id;
           const href = `/${post.data.lang}/blog/${slug}`;

@@ -119,6 +119,22 @@ p {
   margin-bottom: 2.25rem;
 }
 
+.home-top-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 1rem;
+  align-items: stretch;
+  margin-bottom: 1.5rem;
+}
+
+.hero-compact {
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: clamp(1.2rem, 2.5vw, 1.8rem);
+  background: linear-gradient(165deg, rgb(2 6 23 / 0.85) 0%, rgb(15 23 42 / 0.95) 100%);
+}
+
 .hero-bg {
   position: relative;
   overflow: hidden;
@@ -146,7 +162,7 @@ p {
 
 .hero-subtitle {
   margin: 0.8rem 0 0;
-  max-width: 62ch;
+  max-width: 56ch;
   color: #d1d5db;
 }
 
@@ -155,6 +171,45 @@ p {
   flex-wrap: wrap;
   gap: 0.75rem;
   margin-top: 1.3rem;
+}
+
+.latest-tips-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: linear-gradient(180deg, #111827 0%, #0f172a 100%);
+  padding: 1rem;
+}
+
+.latest-tips-panel h2 {
+  font-size: 1.1rem;
+  margin-bottom: 0.7rem;
+}
+
+.tips-compact-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tips-compact-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.tips-compact-list li:last-child {
+  border-bottom: 0;
+}
+
+.tips-compact-list a {
+  text-decoration: none;
+  color: #dbeafe;
+}
+
+.tips-compact-list small {
+  color: var(--muted);
 }
 
 .button {
@@ -272,6 +327,12 @@ p {
 
 .latest-block {
   margin-top: 2.1rem;
+}
+
+.posts-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .site-footer {
@@ -413,6 +474,26 @@ p {
   }
 
   .section-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .home-top-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .posts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 721px) and (max-width: 980px) {
+  .posts-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .home-top-grid {
     grid-template-columns: 1fr;
   }
 }
