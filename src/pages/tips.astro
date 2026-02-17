@@ -1,0 +1,38 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import TipCard from '../components/TipCard.astro';
+
+const includeDrafts = import.meta.env.DEV;
+const tips = (await getCollection(
+  'blog',
+  ({ data }) => data.kind === 'tip' && (includeDrafts || !data.draft),
+)).sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+---
+
+<BaseLayout title="Tips | DataSaaSLab" description="Short practical tips from DataSaaSLab.">
+  <section class="page-header">
+    <h1>Tips</h1>
+    <p>Quick, actionable tips for data, SaaS, and applied AI workflows.</p>
+  </section>
+
+  {tips.length === 0 ? (
+    <p>No tips published yet.</p>
+  ) : (
+    <section class="section-grid">
+      {tips.map((tip) => {
+        const slug = tip.id.split('/').pop() ?? tip.id;
+        const href = `/${tip.data.lang}/blog/${slug}`;
+        return (
+          <TipCard
+            href={href}
+            title={tip.data.title}
+            description={tip.data.description}
+            date={tip.data.date}
+            lang={tip.data.lang}
+          />
+        );
+      })}
+    </section>
+  )}
+</BaseLayout>
