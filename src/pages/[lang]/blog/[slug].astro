@@ -9,10 +9,6 @@ interface Props {
   otherLangEntry: CollectionEntry<'blog'> | null;
 }
 
-function slugFromId(id: string): string {
-  return id.split('/').pop() ?? id;
-}
-
 export async function getStaticPaths() {
   const includeDrafts = import.meta.env.DEV;
   const entries = await getCollection('blog', ({ data }) => includeDrafts || !data.draft);
@@ -21,7 +17,7 @@ export async function getStaticPaths() {
   const slugs = new Set<string>();
 
   for (const entry of entries) {
-    const slug = slugFromId(entry.id);
+    const slug = entry.id.split('/').pop() ?? entry.id;
     slugs.add(slug);
     entryByKey.set(`${entry.data.lang}:${slug}`, entry);
   }
