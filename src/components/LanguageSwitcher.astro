@@ -1,48 +1,78 @@
 ---
-import { getCollection } from 'astro:content';
+import { getCollection } from "astro:content";
 import {
   SECTION_FALLBACK_BY_LOCALE,
   localeFromPathname,
   normalizePathname,
   switchLocalePath,
-} from '../lib/i18n';
+} from "../lib/i18n";
 
 const pathname = Astro.url.pathname;
 const search = Astro.url.search;
-const currentLocale = localeFromPathname(pathname);
-const targetLocale = currentLocale === 'fr' ? 'en' : 'fr';
 const normalizedPath = normalizePathname(pathname);
 
-let targetPath = `${switchLocalePath(pathname, targetLocale)}${search}`;
-const blogPostMatch = normalizedPath.match(/^\/(fr|en)\/blog\/([^/]+)$/);
+const detectedLocale = localeFromPathname(pathname);
+// si tu es sur /tips ou /blog (non préfixé), detectedLocale peut être null/undefined selon ton implémentation
+const currentLocale = detectedLocale ?? "fr";
+const targetLocale = currentLocale === "fr" ? "en" : "fr";
 
-if (blogPostMatch) {
-  const slug = blogPostMatch[2];
+// base: swap prefix (si possible)
+let targetPath = `${switchLocalePath(normalizedPath, targetLocale)}${search}`;
+
+// Match detail pages (blog + tips)
+const blogDetail = normalizedPath.match(/^\/(fr|en)\/blog\/([^/]+)\/?$/);
+const tipsDetail = normalizedPath.match(/^\/(fr|en)\/tips\/([^/]+)\/?$/);
+
+// Helper: find entry by slug in a locale
+async function findEntryBySlug(lang: "fr" | "en", slug: string) {
   const includeDrafts = import.meta.env.DEV;
-  const currentLangEntries = await getCollection(
-    'blog',
-    ({ data }) => data.lang === currentLocale && (includeDrafts || !data.draft),
-  );
-  const targetLangEntries = await getCollection(
-    'blog',
-    ({ data }) => data.lang === targetLocale && (includeDrafts || !data.draft),
-  );
+  const entries = await getCollection("blog", ({ data }) => data.lang === lang && (includeDrafts || !data.draft));
+  return entries.find((e) => e.slug === slug);
+}
 
-  const currentEntry = currentLangEntries.find((entry) => (entry.id.split('/').pop() ?? entry.id) === slug);
-  const targetEntry = targetLangEntries.find((entry) => (entry.id.split('/').pop() ?? entry.id) === slug);
+// BLOG detail: keep same slug if translation exists, else fallback based on kind
+if (blogDetail) {
+  const slug = blogDetail[2];
+
+  const targetEntry = await findEntryBySlug(targetLocale as "fr" | "en", slug);
+  const currentEntry = await findEntryBySlug(currentLocale as "fr" | "en", slug);
 
   if (targetEntry) {
-    targetPath = `/${targetLocale}/blog/${slug}`;
-  } else if (currentEntry?.data.kind === 'tip') {
-    targetPath = SECTION_FALLBACK_BY_LOCALE[targetLocale].tips;
+    targetPath = `/${targetLocale}/blog/${slug}${search}`;
+  } else if (currentEntry?.data.kind === "tip") {
+    targetPath = `${SECTION_FALLBACK_BY_LOCALE[targetLocale].tips}${search}`;
   } else {
-    targetPath = SECTION_FALLBACK_BY_LOCALE[targetLocale].blog;
+    targetPath = `${SECTION_FALLBACK_BY_LOCALE[targetLocale].blog}${search}`;
+  }
+}
+
+// TIPS detail: keep same slug if translation exists, else fallback to tips list
+if (tipsDetail) {
+  const slug = tipsDetail[2];
+  const targetEntry = await findEntryBySlug(targetLocale as "fr" | "en", slug);
+
+  if (targetEntry) {
+    targetPath = `/${targetLocale}/tips/${slug}${search}`;
+  } else {
+    targetPath = `${SECTION_FALLBACK_BY_LOCALE[targetLocale].tips}${search}`;
+  }
+}
+
+// Non-prefixed routes safety: force to prefixed sections
+// (utile tant que /tips, /blog, / existent encore)
+if (!normalizedPath.startsWith("/fr/") && !normalizedPath.startsWith("/en/")) {
+  if (normalizedPath === "/tips" || normalizedPath.startsWith("/tips/")) {
+    targetPath = `${SECTION_FALLBACK_BY_LOCALE[targetLocale].tips}${search}`;
+  } else if (normalizedPath === "/blog" || normalizedPath.startsWith("/blog/")) {
+    targetPath = `${SECTION_FALLBACK_BY_LOCALE[targetLocale].blog}${search}`;
+  } else {
+    targetPath = `${SECTION_FALLBACK_BY_LOCALE[targetLocale].home}${search}`;
   }
 }
 ---
 
 <a class="language-switcher" href={targetPath} hreflang={targetLocale}>
-  <span aria-current={currentLocale === 'fr' ? 'true' : undefined}>FR</span>
+  <span aria-current={currentLocale === "fr" ? "true" : undefined}>FR</span>
   <span aria-hidden="true">/</span>
-  <span aria-current={currentLocale === 'en' ? 'true' : undefined}>EN</span>
+  <span aria-current={currentLocale === "en" ? "true" : undefined}>EN</span>
 </a>
