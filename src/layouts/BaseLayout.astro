@@ -24,6 +24,7 @@ const isLocalizedPath =
 
 const homeHref = isLocalizedPath ? localePath(currentLocale, '/') : '/';
 const blogHref = isLocalizedPath ? localePath(currentLocale, '/blog') : '/blog';
+const tipsHref = isLocalizedPath ? localePath(currentLocale, '/tips') : '/tips';
 const siteUrl = 'https://datasaaslab.dev';
 const canonicalUrl = new URL(pathname, siteUrl).toString();
 const ogImageUrl = new URL(ogImage, siteUrl).toString();
@@ -59,7 +60,7 @@ const ogImageUrl = new URL(ogImage, siteUrl).toString();
         <nav aria-label="Primary">
           <a href={homeHref}>Home</a>
           <a href={blogHref}>Blog</a>
-          <a href="/tips">Tips</a>
+          <a href={tipsHref}>Tips</a>
           <LanguageSwitcher />
         </nav>
       </div>

@@ -1,43 +1,6 @@
 ---
-import { getCollection } from 'astro:content';
-import BaseLayout from '../layouts/BaseLayout.astro';
-import PostCard from '../components/PostCard.astro';
-import { localeFromPathname } from '../lib/i18n';
-import { estimateReadingTime } from '../lib/readingTime';
+import { preferredLocaleFromAcceptLanguage } from '../lib/i18n';
 
-const includeDrafts = import.meta.env.DEV;
-const lang = localeFromPathname(Astro.url.pathname);
-const posts = (await getCollection(
-  'blog',
-  ({ data }) => data.kind === 'post' && data.lang === lang && (includeDrafts || !data.draft),
-)).sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+const preferredLocale = preferredLocaleFromAcceptLanguage(Astro.request.headers.get('accept-language'));
+return Astro.redirect(`/${preferredLocale}/blog`, 302);
 ---
-
-<BaseLayout title="Blog | DataSaaSLab" description="Long-form technical articles from DataSaaSLab.">
-  <section class="page-header">
-    <h1>Blog Posts</h1>
-    <p>Long-form articles, deep dives, and implementation walkthroughs.</p>
-  </section>
-
-  {posts.length === 0 ? (
-    <p>No posts published yet.</p>
-  ) : (
-    <section class="section-grid">
-      {posts.map((post) => {
-        const slug = post.id.split('/').pop() ?? post.id;
-        const href = `/${post.data.lang}/blog/${slug}`;
-        return (
-          <PostCard
-            href={href}
-            title={post.data.title}
-            description={post.data.description}
-            date={post.data.date}
-            lang={post.data.lang}
-            readingTimeMinutes={estimateReadingTime(post.body).minutes}
-            aiAssisted={post.data.ai_assisted}
-          />
-        );
-      })}
-    </section>
-  )}
-</BaseLayout>

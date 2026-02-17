@@ -1,13 +1,8 @@
 ---
-import { getCollection, render, type CollectionEntry } from 'astro:content';
+import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import { LOCALES, type Locale } from '../../../lib/i18n';
 import { buildAbsoluteUrl } from '../../../lib/seo';
-
-interface Props {
-  entry: CollectionEntry<'blog'> | null;
-  otherLangEntry: CollectionEntry<'blog'> | null;
-}
 
 interface TocItem {
   depth: number;
@@ -51,40 +46,6 @@ function extractHeadingsFromBody(body: string): TocItem[] {
   return headings;
 }
 
-export async function getStaticPaths() {
-  const includeDrafts = import.meta.env.DEV;
-  const entries = await getCollection('blog', ({ data }) => includeDrafts || !data.draft);
-
-  const entryByKey = new Map<string, CollectionEntry<'blog'>>();
-  const slugs = new Set<string>();
-
-  for (const entry of entries) {
-    const slug = entry.id.split('/').pop() ?? entry.id;
-    slugs.add(slug);
-    entryByKey.set(`${entry.data.lang}:${slug}`, entry);
-  }
-
-  const paths: Array<{
-    params: { lang: Locale; slug: string };
-    props: Props;
-  }> = [];
-
-  for (const slug of slugs) {
-    for (const lang of LOCALES) {
-      const otherLang = lang === 'fr' ? 'en' : 'fr';
-      paths.push({
-        params: { lang, slug },
-        props: {
-          entry: entryByKey.get(`${lang}:${slug}`) ?? null,
-          otherLangEntry: entryByKey.get(`${otherLang}:${slug}`) ?? null,
-        },
-      });
-    }
-  }
-
-  return paths;
-}
-
 const langParam = Astro.params.lang;
 const slug = Astro.params.slug;
 
@@ -93,7 +54,12 @@ if (!langParam || !LOCALES.includes(langParam as Locale) || !slug) {
 }
 
 const lang = langParam as Locale;
-const { entry, otherLangEntry } = Astro.props as Props;
+const includeDrafts = import.meta.env.DEV;
+const allEntries = await getCollection('blog', ({ data }) => includeDrafts || !data.draft);
+const otherLang = lang === 'fr' ? 'en' : 'fr';
+const entry = allEntries.find((item) => item.data.lang === lang && (item.id.split('/').pop() ?? item.id) === slug) ?? null;
+const otherLangEntry =
+  allEntries.find((item) => item.data.lang === otherLang && (item.id.split('/').pop() ?? item.id) === slug) ?? null;
 
 if (!entry && otherLangEntry) {
   return Astro.redirect(`/${otherLangEntry.data.lang}/blog/${slug}`, 302);

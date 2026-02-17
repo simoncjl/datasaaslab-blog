@@ -1,33 +1,43 @@
 ---
 import { getCollection } from 'astro:content';
 import {
-  FALLBACK_BY_LOCALE,
+  SECTION_FALLBACK_BY_LOCALE,
   localeFromPathname,
   normalizePathname,
   switchLocalePath,
 } from '../lib/i18n';
 
 const pathname = Astro.url.pathname;
+const search = Astro.url.search;
 const currentLocale = localeFromPathname(pathname);
 const targetLocale = currentLocale === 'fr' ? 'en' : 'fr';
 const normalizedPath = normalizePathname(pathname);
 
-let targetPath = switchLocalePath(pathname, targetLocale);
+let targetPath = `${switchLocalePath(pathname, targetLocale)}${search}`;
 const blogPostMatch = normalizedPath.match(/^\/(fr|en)\/blog\/([^/]+)$/);
 
 if (blogPostMatch) {
   const slug = blogPostMatch[2];
   const includeDrafts = import.meta.env.DEV;
-  const targetLangPosts = await getCollection(
+  const currentLangEntries = await getCollection(
+    'blog',
+    ({ data }) => data.lang === currentLocale && (includeDrafts || !data.draft),
+  );
+  const targetLangEntries = await getCollection(
     'blog',
     ({ data }) => data.lang === targetLocale && (includeDrafts || !data.draft),
   );
-  const equivalentExists = targetLangPosts.some((post) => {
-    const postSlug = post.id.split('/').pop() ?? post.id;
-    return postSlug === slug;
-  });
 
-  targetPath = equivalentExists ? `/${targetLocale}/blog/${slug}` : FALLBACK_BY_LOCALE[targetLocale];
+  const currentEntry = currentLangEntries.find((entry) => (entry.id.split('/').pop() ?? entry.id) === slug);
+  const targetEntry = targetLangEntries.find((entry) => (entry.id.split('/').pop() ?? entry.id) === slug);
+
+  if (targetEntry) {
+    targetPath = `/${targetLocale}/blog/${slug}`;
+  } else if (currentEntry?.data.kind === 'tip') {
+    targetPath = SECTION_FALLBACK_BY_LOCALE[targetLocale].tips;
+  } else {
+    targetPath = SECTION_FALLBACK_BY_LOCALE[targetLocale].blog;
+  }
 }
 ---
 

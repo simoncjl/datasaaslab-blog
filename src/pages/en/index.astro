@@ -1,14 +1,89 @@
 ---
+import { getCollection } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostCard from '../../components/PostCard.astro';
+import TipCard from '../../components/TipCard.astro';
+import { estimateReadingTime } from '../../lib/readingTime';
+
+const includeDrafts = import.meta.env.DEV;
+const entries = await getCollection('blog', ({ data }) => data.lang === 'en' && (includeDrafts || !data.draft));
+
+const latestTips = entries
+  .filter((entry) => entry.data.kind === 'tip')
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+  .slice(0, 6);
+
+const latestPosts = entries
+  .filter((entry) => entry.data.kind === 'post')
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+  .slice(0, 6);
 ---
 
-<BaseLayout title="DataSaaSLab">
-  <section>
-    <h1>DataSaaSLab</h1>
-    <p>Home for the bilingual blog.</p>
-    <ul>
-      <li><a href="/fr/blog">/fr/blog</a></li>
-      <li><a href="/en/blog">/en/blog</a></li>
-    </ul>
+<BaseLayout title="DataSaaSLab" description="DataSaaSLab in English: practical tips and long-form technical posts.">
+  <section class="hero hero-bg">
+    <div class="hero-content">
+      <h1>DataSaaSLab</h1>
+      <p class="hero-subtitle">
+        AI-assisted writing with human quality gates. Browse quick tips or dive into long-form technical posts.
+      </p>
+      <div class="cta-row">
+        <a class="button" href="/en/tips">Explore Tips</a>
+        <a class="button button-secondary" href="/en/blog">Read Blog Posts</a>
+      </div>
+      <div class="cta-row">
+        <a class="button button-secondary" href="/fr">FR</a>
+        <a class="button button-secondary" href="/en" aria-current="page">EN</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="latest-block">
+    <h2>Latest Tips</h2>
+    {latestTips.length === 0 ? (
+      <p>No tips yet.</p>
+    ) : (
+      <div class="section-grid">
+        {latestTips.map((tip) => {
+          const slug = tip.id.split('/').pop() ?? tip.id;
+          const href = `/en/blog/${slug}`;
+          return (
+            <TipCard
+              href={href}
+              title={tip.data.title}
+              description={tip.data.description}
+              date={tip.data.date}
+              lang={tip.data.lang}
+              readingTimeMinutes={estimateReadingTime(tip.body).minutes}
+              aiAssisted={tip.data.ai_assisted}
+            />
+          );
+        })}
+      </div>
+    )}
+  </section>
+
+  <section class="latest-block">
+    <h2>Latest Posts</h2>
+    {latestPosts.length === 0 ? (
+      <p>No posts yet.</p>
+    ) : (
+      <div class="posts-grid">
+        {latestPosts.map((post) => {
+          const slug = post.id.split('/').pop() ?? post.id;
+          const href = `/en/blog/${slug}`;
+          return (
+            <PostCard
+              href={href}
+              title={post.data.title}
+              description={post.data.description}
+              date={post.data.date}
+              lang={post.data.lang}
+              readingTimeMinutes={estimateReadingTime(post.body).minutes}
+              aiAssisted={post.data.ai_assisted}
+            />
+          );
+        })}
+      </div>
+    )}
   </section>
 </BaseLayout>

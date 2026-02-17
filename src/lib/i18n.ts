@@ -3,8 +3,13 @@ export type Locale = (typeof LOCALES)[number];
 
 export const DEFAULT_LOCALE: Locale = 'fr';
 export const FALLBACK_BY_LOCALE: Record<Locale, string> = {
-  fr: '/fr/blog',
-  en: '/en/blog',
+  fr: '/fr',
+  en: '/en',
+};
+
+export const SECTION_FALLBACK_BY_LOCALE: Record<Locale, { blog: string; tips: string }> = {
+  fr: { blog: '/fr/blog', tips: '/fr/tips' },
+  en: { blog: '/en/blog', tips: '/en/tips' },
 };
 
 const EQUIVALENT_PATHS = new Set<string>([
@@ -35,6 +40,36 @@ export function localeFromPathname(pathname: string): Locale {
     return 'en';
   }
   return 'fr';
+}
+
+export function preferredLocaleFromAcceptLanguage(headerValue: string | null | undefined): Locale {
+  if (!headerValue) return DEFAULT_LOCALE;
+
+  const weighted = headerValue
+    .split(',')
+    .map((part) => {
+      const [langRangeRaw, ...params] = part.trim().toLowerCase().split(';');
+      const langRange = langRangeRaw.trim();
+      let q = 1;
+
+      for (const param of params) {
+        const [key, value] = param.trim().split('=');
+        if (key === 'q') {
+          const parsed = Number(value);
+          if (!Number.isNaN(parsed)) q = parsed;
+        }
+      }
+
+      return { langRange, q };
+    })
+    .sort((a, b) => b.q - a.q);
+
+  for (const item of weighted) {
+    if (item.langRange.startsWith('fr')) return 'fr';
+    if (item.langRange.startsWith('en')) return 'en';
+  }
+
+  return DEFAULT_LOCALE;
 }
 
 export function localePath(locale: Locale, path = '/'): string {
