@@ -35,6 +35,7 @@ const blog = defineCollection({
     tags: z.array(z.string()).optional(),
     lang: z.enum(['fr', 'en']),
     kind: z.enum(['tip', 'post']),
+    ai_assisted: z.boolean().default(false),
     draft: z.boolean().default(false),
   }),
 });

@@ -101,6 +101,13 @@ const Content = rendered?.Content;
 
   {entry && Content ? (
     <article class="prose">
+      {entry.data.ai_assisted && (
+        <p class="ai-assisted-note">
+          {entry.data.lang === 'fr'
+            ? 'AI-assisted · Revu par un humain'
+            : 'AI-assisted · Human-reviewed'}
+        </p>
+      )}
       <h1>{entry.data.title}</h1>
       <p>{entry.data.description}</p>
       <Content />

@@ -1,0 +1,15 @@
+---
+interface Props {
+  aiAssisted?: boolean;
+}
+
+const { aiAssisted = false } = Astro.props;
+---
+
+{
+  aiAssisted && (
+    <span class="badge badge-ai" title="AI-assisted content reviewed by a human">
+      AI-assisted · Human-reviewed
+    </span>
+  )
+}

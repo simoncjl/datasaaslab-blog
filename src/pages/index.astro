@@ -3,17 +3,19 @@ import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PostCard from '../components/PostCard.astro';
 import TipCard from '../components/TipCard.astro';
+import { localeFromPathname } from '../lib/i18n';
 
 const includeDrafts = import.meta.env.DEV;
+const lang = localeFromPathname(Astro.url.pathname);
 const entries = await getCollection('blog', ({ data }) => includeDrafts || !data.draft);
 
 const latestTips = entries
-  .filter((entry) => entry.data.kind === 'tip')
+  .filter((entry) => entry.data.kind === 'tip' && entry.data.lang === lang)
   .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
   .slice(0, 6);
 
 const latestPosts = entries
-  .filter((entry) => entry.data.kind === 'post')
+  .filter((entry) => entry.data.kind === 'post' && entry.data.lang === lang)
   .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
   .slice(0, 6);
 ---
@@ -48,6 +50,7 @@ const latestPosts = entries
               description={tip.data.description}
               date={tip.data.date}
               lang={tip.data.lang}
+              aiAssisted={tip.data.ai_assisted}
             />
           );
         })}
@@ -71,6 +74,7 @@ const latestPosts = entries
               description={post.data.description}
               date={post.data.date}
               lang={post.data.lang}
+              aiAssisted={post.data.ai_assisted}
             />
           );
         })}

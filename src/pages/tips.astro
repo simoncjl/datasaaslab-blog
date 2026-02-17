@@ -2,11 +2,13 @@
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import TipCard from '../components/TipCard.astro';
+import { localeFromPathname } from '../lib/i18n';
 
 const includeDrafts = import.meta.env.DEV;
+const lang = localeFromPathname(Astro.url.pathname);
 const tips = (await getCollection(
   'blog',
-  ({ data }) => data.kind === 'tip' && (includeDrafts || !data.draft),
+  ({ data }) => data.kind === 'tip' && data.lang === lang && (includeDrafts || !data.draft),
 )).sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 ---
 
@@ -30,6 +32,7 @@ const tips = (await getCollection(
             description={tip.data.description}
             date={tip.data.date}
             lang={tip.data.lang}
+            aiAssisted={tip.data.ai_assisted}
           />
         );
       })}

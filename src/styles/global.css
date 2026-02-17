@@ -222,6 +222,13 @@ p {
   font-size: 0.82rem;
 }
 
+.card-badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
 .badge {
   display: inline-flex;
   align-items: center;
@@ -238,6 +245,15 @@ p {
   border-color: #3b82f6;
   color: #93c5fd;
   background: rgb(30 64 175 / 0.15);
+}
+
+.badge-ai {
+  border-color: #16a34a;
+  color: #bbf7d0;
+  background: rgb(22 163 74 / 0.16);
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 600;
 }
 
 .card h3 {
@@ -346,6 +362,17 @@ p {
 
 .prose {
   max-width: 75ch;
+}
+
+.ai-assisted-note {
+  display: inline-block;
+  margin: 0 0 0.65rem;
+  padding: 0.22rem 0.55rem;
+  border: 1px solid #14532d;
+  border-radius: 999px;
+  background: rgb(22 163 74 / 0.1);
+  color: #bbf7d0;
+  font-size: 0.82rem;
 }
 
 .prose h2,
