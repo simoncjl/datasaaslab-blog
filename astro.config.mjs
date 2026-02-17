@@ -5,7 +5,7 @@ import sitemap from '@astrojs/sitemap';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://datasaaslab-blog.pages.dev',
+  site: 'https://datasaaslab.dev',
   integrations: [mdx(), sitemap()],
   i18n: {
     locales: ['fr', 'en'],

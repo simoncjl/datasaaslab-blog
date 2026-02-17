@@ -18,7 +18,7 @@ const pathname = Astro.url.pathname;
 const currentLocale = localeFromPathname(pathname);
 const homeHref = pathname === '/' ? '/' : localePath(currentLocale, '/');
 const blogHref = localePath(currentLocale, '/blog');
-const siteUrl = 'https://datasaaslab-blog.pages.dev';
+const siteUrl = 'https://datasaaslab.dev';
 const canonicalUrl = new URL(pathname, siteUrl).toString();
 const ogImageUrl = new URL(ogImage, siteUrl).toString();
 ---
@@ -65,8 +65,8 @@ const ogImageUrl = new URL(ogImage, siteUrl).toString();
     <footer class="site-footer">
       <div class="container footer-content">
         <a href="https://github.com/Simoncjl" target="_blank" rel="noopener noreferrer">GitHub: Simoncjl</a>
-        <a href="https://datasaaslab-blog.pages.dev" target="_blank" rel="noopener noreferrer">
-          datasaaslab-blog.pages.dev
+        <a href="https://datasaaslab.dev" target="_blank" rel="noopener noreferrer">
+          datasaaslab.dev
         </a>
         <p>Opinions are my own.</p>
       </div>
