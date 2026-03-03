@@ -115,6 +115,20 @@ Output directory: `/dist`
 
 Environment variable: ***SITE_URL***
 
+For newsletter subscriptions, comments, and future article follows, the app can use Cloudflare D1 and server-side email sending.
+
+Recommended bindings and secrets:
+
+- D1 binding: `SUBSCRIPTIONS_DB`
+- Secret: `MAILTRAP_API_TOKEN`
+- Secret: `MAILTRAP_SENDER_EMAIL`
+- Optional secret: `MAILTRAP_SENDER_NAME`
+- Optional env var: `SITE_URL`
+
+Apply the initial D1 schema from:
+
+`db/subscriptions.sql`
+
 ---
 
 ## 👤 Author

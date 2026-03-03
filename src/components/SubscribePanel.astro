@@ -1,0 +1,108 @@
+---
+interface Props {
+  locale: 'fr' | 'en';
+  sourcePath?: string;
+}
+
+const { locale, sourcePath = '/' } = Astro.props;
+
+const copy =
+  locale === 'fr'
+    ? {
+        title: 'Newsletter DataSaaSLab',
+        body: 'Recevez les nouveaux articles, labs et futures mises a jour produit. Inscription simple, sans compte.',
+        emailLabel: 'Votre email',
+        emailPlaceholder: 'vous@entreprise.com',
+        submit: "S'abonner",
+        pending: 'Envoi en cours...',
+        success: 'Inscription enregistree. Vous recevrez les prochains envois.',
+        duplicate: 'Vous etes deja inscrit. Vos preferences ont ete mises a jour.',
+        error: "Impossible d'enregistrer l'inscription pour le moment.",
+      }
+    : {
+        title: 'DataSaaSLab Newsletter',
+        body: 'Get new posts, labs, and future product updates. Simple subscription, no account required.',
+        emailLabel: 'Your email',
+        emailPlaceholder: 'you@company.com',
+        submit: 'Subscribe',
+        pending: 'Submitting...',
+        success: 'Subscription saved. You will receive future updates.',
+        duplicate: 'You are already subscribed. Your preferences were refreshed.',
+        error: 'Unable to save your subscription right now.',
+      };
+---
+
+<section class="subscribe-panel" aria-label={copy.title}>
+  <div class="subscribe-copy">
+    <h2>{copy.title}</h2>
+    <p>{copy.body}</p>
+  </div>
+
+  <form class="subscribe-form" method="post" action="/api/subscribe" data-subscribe-form novalidate>
+    <input type="hidden" name="locale" value={locale} />
+    <input type="hidden" name="scope" value="site" />
+    <input type="hidden" name="sourcePath" value={sourcePath} />
+    <label class="subscribe-field">
+      <span class="sr-only">{copy.emailLabel}</span>
+      <input
+        type="email"
+        name="email"
+        autocomplete="email"
+        required
+        inputmode="email"
+        placeholder={copy.emailPlaceholder}
+      />
+    </label>
+    <button class="button" type="submit">{copy.submit}</button>
+    <p
+      class="subscribe-feedback"
+      data-message-default={copy.success}
+      data-message-duplicate={copy.duplicate}
+      data-message-pending={copy.pending}
+      data-message-error={copy.error}
+      data-subscribe-feedback
+      aria-live="polite"
+    ></p>
+  </form>
+</section>
+
+<script is:inline>
+  (() => {
+    const forms = Array.from(document.querySelectorAll('[data-subscribe-form]'));
+    if (forms.length === 0) return;
+
+    for (const form of forms) {
+      const feedback = form.querySelector('[data-subscribe-feedback]');
+      if (!feedback) continue;
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        feedback.textContent = feedback.getAttribute('data-message-pending') || '';
+
+        try {
+          const response = await fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: {
+              Accept: 'application/json',
+            },
+          });
+
+          const payload = await response.json();
+          if (!response.ok || !payload?.ok) {
+            throw new Error(payload?.error || 'Subscription failed');
+          }
+
+          feedback.textContent =
+            payload.created === false
+              ? feedback.getAttribute('data-message-duplicate') || ''
+              : feedback.getAttribute('data-message-default') || '';
+          form.reset();
+        } catch (error) {
+          console.error(error);
+          feedback.textContent = feedback.getAttribute('data-message-error') || '';
+        }
+      });
+    }
+  })();
+</script>
