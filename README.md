@@ -130,6 +130,17 @@ Apply the initial D1 schema from:
 
 `db/subscriptions.sql`
 
+For public repositories:
+
+- keep only non-secret values in `wrangler.toml`
+- keep the real Mailtrap values in Wrangler secrets
+- prefer placeholders for production D1 identifiers in git
+- use `.dev.vars` locally for testing, and keep it untracked
+
+An example local file is provided in:
+
+`.dev.vars.example`
+
 ---
 
 ## 👤 Author

@@ -5,11 +5,15 @@ pages_build_output_dir = "./dist"
 [vars]
 SITE_URL = "https://datasaaslab.dev"
 
-# Add your production D1 binding here before deploy.
-# Example:
+# Public repo note:
+# keep only non-secret config in this file.
+# It is safer to leave the real production D1 identifiers out of git in a public repository.
+# Add your real D1 binding locally or in your deployment workflow before deploy.
+#
+# Example template:
 # [[d1_databases]]
 # binding = "SUBSCRIPTIONS_DB"
-# database_name = "datasaaslab-subscriptions-prod"
+# database_name = "replace-with-your-d1-database-name"
 # database_id = "replace-with-your-d1-database-id"
 
 # Keep secrets out of this file. Set these with Wrangler instead:
