@@ -52,6 +52,11 @@ const formatDate = (value: Date) =>
 
   <section>
     <h1>Blog</h1>
+    <p>
+      {lang === 'fr'
+        ? 'Nouveau: un article SQL avec notebook telechargeable montre comment utiliser QUALIFY pour dedupliquer, gerer des prix temporels, classer des magasins et analyser des logs pipeline.'
+        : 'New: a notebook-backed SQL article shows how to use QUALIFY for deduplication, temporal pricing, preferred-store ranking, and pipeline log analysis.'}
+    </p>
 
     {posts.length === 0 ? (
       <p>{lang === 'fr' ? 'Aucun article pour le moment.' : 'No posts yet.'}</p>

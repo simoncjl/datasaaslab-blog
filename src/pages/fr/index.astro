@@ -31,6 +31,10 @@ const latestPosts = entries
         <a class="button" href="/fr/tips">Voir les astuces</a>
         <a class="button button-secondary" href="/fr/blog">Lire les articles</a>
       </div>
+      <p class="hero-subtitle">
+        Nouveau: le dernier article SQL inclut un notebook lab telechargeable sur `QUALIFY`, la deduplication, le
+        pricing temporel, le ranking, et l'analyse des logs pipeline.
+      </p>
       <div class="cta-row">
         <a class="button button-secondary" href="/fr" aria-current="page">FR</a>
         <a class="button button-secondary" href="/en">EN</a>
@@ -65,6 +69,9 @@ const latestPosts = entries
 
   <section class="latest-block">
     <h2>Derniers articles</h2>
+    <p>
+      Lab a la une: <a href="/fr/blog/qualify-first-dedup-and-temporal-pricing">telecharger le nouvel article avec notebook `QUALIFY`</a>.
+    </p>
     {latestPosts.length === 0 ? (
       <p>Aucun article pour le moment.</p>
     ) : (

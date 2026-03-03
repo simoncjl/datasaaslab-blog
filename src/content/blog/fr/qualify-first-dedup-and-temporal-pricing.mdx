@@ -1,0 +1,413 @@
+---
+title: "Pourquoi QUALIFY devrait etre votre premier reflexe pour dedupliquer et gerer des prix temporels"
+description: "Guide SQL pratique pour utiliser QUALIFY afin de supprimer des exports sources dupliques et choisir le bon cout produit a la date de commande pour calculer la marge."
+date: 2026-03-03
+tags: ["sql","analytics-engineering","data-quality","deduplication","window-functions"]
+lang: "fr"
+kind: "post"
+ai_assisted: true
+draft: false
+---
+
+## Contexte projet reel
+
+Quand la vraie regle est "classer plusieurs candidates, puis en garder une seule", `QUALIFY` est souvent l'ecriture SQL la plus claire.
+
+Le pattern revient en permanence dans deux cas:
+
+- des systemes sources qui emettent des exports dupliques apres un changement interne
+- des tables de prix ou plusieurs couts produit sont valides dans le temps, alors que la marge doit utiliser le cout actif a la date de commande
+
+Dans le lab ci-dessous, les deux cas utilisent des jeux de donnees synthetiques mais realistes:
+
+- un operateur de jeux de loterie en ligne avec des exports de ventes dupliques apres une release qui a modifie la logique de timestamp d'export
+- un grossiste B2B en livraison alimentaire pour restaurants, avec des prix fournisseurs qui changent pendant le mois
+
+> Regle de decision: si la logique est "appliquer une window function, puis garder uniquement les lignes gagnantes", commencez par `QUALIFY`. Si le dataset intermediaire classe doit etre reutilise plusieurs fois, un CTE ou une vue temporaire peut se justifier. Si votre moteur SQL ne supporte pas `QUALIFY`, utilisez d'abord une sous-requete inline avant de passer a des patterns plus lourds.
+
+➡️ Lab: [QUALIFY pour la deduplication et les prix temporels](/fr/labs/qualify-dedup-and-temporal-pricing)
+
+## Probleme a resoudre
+
+Le probleme operationnel n'est presque jamais simplement "il y a des doublons". Le vrai sujet ressemble plutot a l'un de ceux-ci:
+
+- deux enregistrements sont identiques du point de vue metier, mais differents sur des timestamps techniques
+- plusieurs prix produit existent, et un seul est correct pour la date de commande
+- un indicateur aval semble valide parce que SQL renvoie quand meme un resultat, meme si la mauvaise ligne a ete choisie
+
+C'est la que `QUALIFY` devient utile: on classe les lignes avec une window function, puis on garde la gagnante dans le meme bloc de requete.
+
+## Pourquoi les solutions courantes echouent
+
+### Le pattern a deux CTE: valide, mais plus bruyant que necessaire
+
+Beaucoup d'equipes ecrivent ceci:
+
+```sql
+WITH ranked_exports AS (
+  SELECT
+    order_id,
+    customer_id,
+    gross_amount,
+    source_created_at,
+    source_exported_at,
+    ingestion_ts,
+    ROW_NUMBER() OVER (
+      PARTITION BY order_id
+      ORDER BY source_exported_at DESC, ingestion_ts DESC
+    ) AS rn
+  FROM bronze_lottery_sales
+),
+deduped AS (
+  SELECT *
+  FROM ranked_exports
+  WHERE rn = 1
+)
+SELECT *
+FROM deduped;
+```
+
+Cette version fonctionne, mais le second CTE ajoute de la ceremonie sans ajouter de sens.
+
+Cela devient encore plus lourd quand l'equipe decoupe la meme logique en:
+
+- un CTE pour classer
+- un CTE pour filtrer
+- un dernier CTE pour rejoin les lignes conservees dans un autre dataset
+
+Le resultat n'est pas forcement faux, mais la requete devient plus longue et plus difficile a relire.
+
+### La sous-requete inline: acceptable, mais toujours indirecte
+
+Certaines equipes evitent les CTE nommes et poussent le classement dans une sous-requete inline:
+
+```sql
+SELECT *
+FROM (
+  SELECT
+    order_id,
+    customer_id,
+    gross_amount,
+    source_exported_at,
+    ingestion_ts,
+    ROW_NUMBER() OVER (
+      PARTITION BY order_id
+      ORDER BY source_exported_at DESC, ingestion_ts DESC
+    ) AS rn
+  FROM bronze_lottery_sales
+) ranked
+WHERE rn = 1;
+```
+
+Cette version est plus courte que celle a deux CTE, mais le meme defaut reste present: la regle de classement et la regle de filtrage sont separees sur deux niveaux de requete.
+
+### La sous-requete correlee: compacte, mais fragile
+
+Autre version courante:
+
+```sql
+SELECT s.*
+FROM bronze_lottery_sales s
+WHERE source_exported_at = (
+  SELECT MAX(source_exported_at)
+  FROM bronze_lottery_sales x
+  WHERE x.order_id = s.order_id
+);
+```
+
+Ce pattern casse des que:
+
+- deux lignes partagent le meme timestamp maximal
+- le vrai tie-breaker est `ingestion_ts`
+- il faut choisir la "meilleure" ligne sur plus d'une colonne d'ordre
+
+Et surtout, cela cache l'intention. La vraie regle n'est pas "garder les lignes egales au timestamp max". La regle est "classer les candidates et garder la premiere".
+
+### Table temporaire ou vue temporaire: utile pour debugger, plus lourde par defaut
+
+Les objets temporaires ne sont pas mauvais en soi. Dans un notebook, une analyse d'incident, ou une investigation longue, une `TEMP VIEW` ou une table temporaire peut rendre les etapes intermediaires plus faciles a inspecter:
+
+```sql
+CREATE OR REPLACE TEMP VIEW ranked_exports AS
+SELECT
+  order_id,
+  customer_id,
+  source_exported_at,
+  ingestion_ts,
+  ROW_NUMBER() OVER (
+    PARTITION BY order_id
+    ORDER BY source_exported_at DESC, ingestion_ts DESC
+  ) AS rn
+FROM bronze_lottery_sales;
+
+SELECT *
+FROM ranked_exports
+WHERE rn = 1;
+```
+
+Mais utiliser des objets temporaires comme implementation par defaut a aussi des couts reels:
+
+- plus de lignes SQL a maintenir
+- un cycle de vie d'objet a gerer dans les notebooks ou jobs
+- plus de risques de collision de noms
+- une portabilite plus difficile quand la logique est recopiee entre jobs, models, et analyses ad hoc
+
+Pour une logique de production qui consiste seulement a "classer puis garder", `QUALIFY` reste en general plus propre. Les vues temporaires sont plus defendables quand le dataset intermediaire classe sera reutilise plusieurs fois dans le meme workflow.
+
+## Comparaison des techniques
+
+Pour cette classe de probleme, le compromis est souvent le suivant:
+
+- `QUALIFY`: le chemin le plus court quand la logique est "window function, puis filtre" dans la meme requete
+- sous-requete inline: viable, mais ajoute un niveau d'imbrication uniquement pour exposer le resultat de la window function
+- deux CTE ou plus: plus lisible que du SQL tres imbrique, mais souvent plus long que necessaire pour une simple selection de ligne
+- sous-requete correlee: peut sembler compacte, mais devient fragile des que les ex aequo ou plusieurs colonnes d'ordre comptent
+- table temporaire ou vue temporaire: utile en debug ou si le dataset intermediaire est reutilise, mais plus lourde pour un filtrage en un seul passage
+
+En pratique, la complexite a tendance a augmenter dans cet ordre:
+
+`QUALIFY` < sous-requete inline < chaine de CTE en deux etapes < workflow avec objet temporaire < sous-requete correlee avec exceptions de tie-break
+
+Ce n'est pas un classement absolu pour toutes les requetes, mais c'est un bon reflet des cas de warehouse quotidiens ou l'on veut garder une seule "meilleure" ligne par partition.
+
+| Technique | Lisibilite | Gere bien les ex aequo | Bon pour debugger | Meilleur usage |
+| --- | --- | --- | --- | --- |
+| `QUALIFY` | Haute | Oui, avec `RANK()` / `DENSE_RANK()` / `ROW_NUMBER()` | Moyen | Filtrage en un seul passage apres une window function |
+| Sous-requete inline | Moyenne | Oui, mais moins directement | Faible | Quand `QUALIFY` n'est pas disponible mais que la logique reste simple |
+| Chaine de CTE en deux etapes | Moyenne | Oui | Moyen | Quand le nommage intermediaire aide un peu la relecture ou la reutilisation |
+| Sous-requete correlee | Faible pour la logique de ranking | Faible des que les tie-breakers se multiplient | Faible | Recherches simples de max/min sans vraie complexite de ranking |
+| Table temporaire / vue temporaire | Moyenne | Oui | Haute | Investigation, notebooks, ou reutilisation repetee du meme dataset intermediaire |
+
+## Details d'implementation
+
+### Cas 1: exports dupliques depuis un systeme de ventes
+
+Dans l'exemple synthetique de loterie, la plateforme de ventes a emis deux exports pour la meme commande apres qu'un nouveau developpeur a modifie un timestamp interne de batch. Le payload metier est reste identique, mais les metadonnees techniques ont change:
+
+- `source_created_at`: moment ou la commande a ete creee
+- `source_exported_at`: moment ou le fichier d'export a ete genere
+- `ingestion_ts`: moment ou la plateforme data a recu le fichier
+
+Si vous utilisez uniquement `SELECT DISTINCT`, les doublons restent presents car les timestamps techniques sont differents.
+
+Utilisez `QUALIFY` a la place:
+
+```sql
+SELECT
+  order_id,
+  customer_id,
+  game_code,
+  gross_amount,
+  source_created_at,
+  source_exported_at,
+  ingestion_ts
+FROM bronze_lottery_sales
+QUALIFY ROW_NUMBER() OVER (
+  PARTITION BY order_id
+  ORDER BY source_exported_at DESC, ingestion_ts DESC
+) = 1;
+```
+
+On garde ainsi une seule ligne par commande metier, avec un tie-breaker explicite.
+
+### Cas 2: choisir le bon cout produit a la date de commande
+
+Les calculs de marge derapent silencieusement quand on utilise le dernier cout fournisseur connu au lieu du cout valide a la date de commande.
+
+Le raccourci incorrect ressemble souvent a ceci:
+
+```sql
+SELECT
+  o.order_id,
+  o.product_id,
+  o.sale_price,
+  p.unit_cost,
+  o.sale_price - p.unit_cost AS margin
+FROM b2b_orders o
+JOIN latest_product_cost p
+  ON o.product_id = p.product_id;
+```
+
+Cette logique est fausse des qu'un prix fournisseur a ete mis a jour apres la commande.
+
+La bonne regle est: pour chaque commande, garder le prix fournisseur le plus recent tel que `effective_date <= order_date`.
+
+```sql
+SELECT
+  o.order_id,
+  o.order_date,
+  o.product_id,
+  o.sale_price,
+  p.unit_cost,
+  o.sale_price - p.unit_cost AS gross_margin
+FROM b2b_orders o
+JOIN supplier_price_history p
+  ON o.product_id = p.product_id
+ AND p.effective_date <= o.order_date
+QUALIFY ROW_NUMBER() OVER (
+  PARTITION BY o.order_id
+  ORDER BY p.effective_date DESC, p.updated_at DESC
+) = 1;
+```
+
+La logique reste simple a auditer: on joint les candidates valides, on les classe, puis on garde la gagnante.
+
+## Code et parcours du lab
+
+Le package du lab contient:
+
+- un notebook telechargeable avec generation de donnees synthetiques
+- des exemples SQL pour detecter puis nettoyer des doublons
+- un exemple de pricing temporel montrant l'ecart de marge entre un mauvais join et le bon pattern `QUALIFY`
+- un exemple de magasin prefere avec `RANK()` et `DENSE_RANK()`
+- un exemple de logs pipeline avec `ROW_NUMBER()` et `LAG()`
+
+Telechargement du notebook: [qualify-dedup-and-temporal-pricing.ipynb](/notebooks/qualify-dedup-and-temporal-pricing.ipynb)
+
+Une requete de diagnostic utile avant suppression consiste a afficher les groupes qui ont maintenant plus d'une ligne technique:
+
+```sql
+SELECT
+  order_id,
+  COUNT(*) AS row_count,
+  MIN(source_exported_at) AS first_export_ts,
+  MAX(source_exported_at) AS last_export_ts
+FROM bronze_lottery_sales
+GROUP BY order_id
+HAVING COUNT(*) > 1
+ORDER BY row_count DESC, last_export_ts DESC;
+```
+
+Ensuite, on transforme cette logique en suppression controlee:
+
+```sql
+DELETE FROM bronze_lottery_sales
+WHERE (order_id, source_exported_at, ingestion_ts) IN (
+  SELECT
+    order_id,
+    source_exported_at,
+    ingestion_ts
+  FROM bronze_lottery_sales
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY order_id
+    ORDER BY source_exported_at DESC, ingestion_ts DESC
+  ) > 1
+);
+```
+
+N'appliquez une suppression destructive qu'apres validation de la regle de classement via un `SELECT` non destructif.
+
+## Autres usages metier a forte valeur
+
+### Magasin prefere selon le nombre de visites
+
+Un autre besoin frequent consiste a attribuer un magasin prefere par client pour la segmentation CRM, les promotions locales, ou le pilotage commercial.
+
+La table de base contient souvent une ligne par visite. On commence par agreger les visites par client et magasin, puis on classe les magasins par volume de visites:
+
+```sql
+WITH customer_store_visits AS (
+  SELECT
+    customer_id,
+    store_id,
+    COUNT(*) AS visit_count,
+    MAX(visit_date) AS last_visit_date
+  FROM customer_shop_visits
+  GROUP BY customer_id, store_id
+)
+SELECT
+  customer_id,
+  store_id,
+  visit_count,
+  last_visit_date,
+  DENSE_RANK() OVER (
+    PARTITION BY customer_id
+    ORDER BY visit_count DESC
+  ) AS visit_rank
+FROM customer_store_visits
+QUALIFY visit_rank = 1;
+```
+
+Pourquoi `DENSE_RANK()` ici:
+
+- utilisez `DENSE_RANK()` si plusieurs magasins ex aequo doivent tous rester visibles comme magasins preferes
+- utilisez `RANK()` si vous voulez le meme comportement sur les ex aequo mais avec des trous dans la numerotation
+- utilisez `ROW_NUMBER()` seulement si le metier impose de forcer un unique gagnant, par exemple avec `last_visit_date DESC`
+
+C'est un bon exemple de `QUALIFY` non pas pour dedupliquer, mais pour "garder le meilleur groupe apres agregation".
+
+### Suivi de pipelines: dernier statut et transitions de retry
+
+Les tables de tracking pipeline contiennent souvent plusieurs lignes de log pour un meme `run_id`:
+
+- `started`
+- `failed`
+- `retried`
+- `success`
+
+Pour remonter l'etat final par run, on garde le dernier evenement:
+
+```sql
+SELECT
+  run_id,
+  pipeline_name,
+  status,
+  event_ts,
+  attempt_no
+FROM pipeline_run_log
+QUALIFY ROW_NUMBER() OVER (
+  PARTITION BY run_id
+  ORDER BY event_ts DESC, attempt_no DESC
+) = 1;
+```
+
+Pour isoler la transition ou un retry a bien rattrape un echec, on compare chaque ligne au statut precedent:
+
+```sql
+SELECT
+  run_id,
+  pipeline_name,
+  status,
+  event_ts,
+  LAG(status) OVER (
+    PARTITION BY run_id
+    ORDER BY event_ts, attempt_no
+  ) AS previous_status
+FROM pipeline_run_log
+QUALIFY previous_status = 'failed'
+    AND status IN ('retried', 'success');
+```
+
+Ce pattern est tres utile quand l'equipe veut mesurer la resilience operationnelle:
+
+- combien de runs en echec se sont finalement remis sans intervention manuelle
+- quels pipelines reussissent souvent seulement au deuxieme ou troisieme essai
+- ou des boucles de retry masquent des dependances amont instables
+
+## Resultats mesures sur le lab synthetique
+
+Sur le jeu de donnees inclus:
+
+- le scenario d'exports dupliques commence avec 12 lignes pour 8 vraies commandes de loterie
+- `SELECT DISTINCT` retourne encore 12 lignes car les timestamps sont differents
+- le pattern `QUALIFY ROW_NUMBER()` renvoie bien les 8 lignes attendues
+- le scenario de pricing montre plusieurs commandes restaurant ou utiliser le dernier prix fournisseur surevalue la marge de 8% a 19%
+- le scenario de magasin prefere fait apparaitre des clients avec plusieurs magasins ex aequo, ce qui montre pourquoi `DENSE_RANK()` est plus sur qu'un gagnant force arbitrairement
+- le scenario de logs pipeline isole a la fois le dernier statut par run et les runs qui se sont retablis juste apres un echec
+
+Les pourcentages sont synthetiques, mais le mode de defaillance est frequent en production, parce qu'un mauvais join continue de produire un resultat qui semble complet.
+
+## Lecons retenues
+
+- Si la regle metier est "garder une ligne apres classement", commencez par `QUALIFY`.
+- `SELECT DISTINCT` n'est pas une strategie de deduplication quand les metadonnees techniques divergent.
+- Les sous-requetes correlees cachent la logique de tie-break et deviennent fragiles pour les regles temporelles.
+- Pour l'historique de cout, "derniere ligne connue" et "ligne valide a la date de commande" sont deux questions differentes.
+- `DENSE_RANK()` est souvent le bon choix quand le metier veut conserver tous les meilleurs candidats ex aequo.
+- `LAG()` avec `QUALIFY` est un tres bon moyen d'extraire des transitions d'etat dans des tables de logs.
+- Les vues temporaires sont de bons outils de debug, mais pas la reponse par defaut pour une logique de ranking en un seul passage.
+- Validez d'abord avec une requete de revue, puis supprimez ou mergez seulement quand la ligne conservee est explicite.
+
+`QUALIFY` ne remplace pas une bonne modelisation, mais il supprime beaucoup de surcharge SQL inutile dans le travail quotidien sur un warehouse.
+
+➡️ Lab: [QUALIFY pour la deduplication et les prix temporels](/fr/labs/qualify-dedup-and-temporal-pricing)

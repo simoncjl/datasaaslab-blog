@@ -30,6 +30,10 @@ const latestPosts = entries
         <a class="button" href="/en/tips">Explore Tips</a>
         <a class="button button-secondary" href="/en/blog">Read Blog Posts</a>
       </div>
+      <p class="hero-subtitle">
+        New: the latest SQL article includes a downloadable notebook lab for `QUALIFY`, deduplication, temporal pricing,
+        ranking, and pipeline log analysis.
+      </p>
       <div class="cta-row">
         <a class="button button-secondary" href="/fr">FR</a>
         <a class="button button-secondary" href="/en" aria-current="page">EN</a>
@@ -64,6 +68,9 @@ const latestPosts = entries
 
   <section class="latest-block">
     <h2>Latest Posts</h2>
+    <p>
+      Featured lab: <a href="/en/blog/qualify-first-dedup-and-temporal-pricing">download the new `QUALIFY` notebook-backed article</a>.
+    </p>
     {latestPosts.length === 0 ? (
       <p>No posts yet.</p>
     ) : (
