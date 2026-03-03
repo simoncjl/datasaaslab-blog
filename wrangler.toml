@@ -1,3 +1,18 @@
 name = "datasaaslab-blog"
 compatibility_date = "2026-02-17"
 pages_build_output_dir = "./dist"
+
+[vars]
+SITE_URL = "https://datasaaslab.dev"
+
+# Add your production D1 binding here before deploy.
+# Example:
+# [[d1_databases]]
+# binding = "SUBSCRIPTIONS_DB"
+# database_name = "datasaaslab-subscriptions-prod"
+# database_id = "replace-with-your-d1-database-id"
+
+# Keep secrets out of this file. Set these with Wrangler instead:
+# - wrangler secret put MAILTRAP_API_TOKEN
+# - wrangler secret put MAILTRAP_SENDER_EMAIL
+# - wrangler secret put MAILTRAP_SENDER_NAME
