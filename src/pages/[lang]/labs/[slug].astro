@@ -1,8 +1,20 @@
 ---
+export const prerender = true;
+
 import { getCollection, render, type CollectionEntry } from 'astro:content';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import { LOCALES, type Locale } from '../../../lib/i18n';
 import { buildAbsoluteUrl } from '../../../lib/seo';
+
+export async function getStaticPaths() {
+  const labs = await getCollection('labs', ({ data }) => !data.draft);
+  return LOCALES.flatMap((lang) =>
+    labs.map((entry) => {
+      const slug = entry.id.split('/').pop() ?? entry.id;
+      return { params: { lang, slug } };
+    }),
+  );
+}
 
 const langParam = Astro.params.lang;
 const slug = Astro.params.slug;

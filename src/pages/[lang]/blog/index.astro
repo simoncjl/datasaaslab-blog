@@ -1,9 +1,15 @@
 ---
+export const prerender = true;
+
 import { getCollection } from 'astro:content';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import { LOCALES, type Locale } from '../../../lib/i18n';
 import { buildAbsoluteUrl } from '../../../lib/seo';
 import { estimateReadingTime } from '../../../lib/readingTime';
+
+export function getStaticPaths() {
+  return LOCALES.map((lang) => ({ params: { lang } }));
+}
 
 const langParam = Astro.params.lang;
 if (!langParam || !LOCALES.includes(langParam as Locale)) {
