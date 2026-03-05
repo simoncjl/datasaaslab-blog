@@ -8,7 +8,7 @@ const langParam = Astro.params.lang;
 const slug = Astro.params.slug;
 
 if (!langParam || !LOCALES.includes(langParam as Locale) || !slug) {
-  return Astro.redirect('/fr/labs', 302);
+  return Astro.redirect(new URL('/fr/labs', Astro.url).toString(), 302);
 }
 
 const lang = langParam as Locale;

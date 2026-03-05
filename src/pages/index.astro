@@ -1,6 +1,0 @@
----
-import { preferredLocaleFromAcceptLanguage } from '../lib/i18n';
-
-const preferredLocale = preferredLocaleFromAcceptLanguage(Astro.request.headers.get('accept-language'));
-return Astro.redirect(`/${preferredLocale}`, 302);
----
