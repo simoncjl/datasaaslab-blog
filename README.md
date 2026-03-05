@@ -143,6 +143,38 @@ An example local file is provided in:
 
 ---
 
+## 🧪 Local Newsletter Testing
+
+Use Wrangler for local testing because the API relies on the D1 binding (Astro dev won’t provide it).
+
+1. Add the D1 binding in `wrangler.toml` (binding name must be `SUBSCRIPTIONS_DB`).
+1. Ensure `compatibility_flags = ["nodejs_compat"]` is set in `wrangler.toml`.
+1. Create and initialize the local D1 database:
+
+```bash
+npx wrangler d1 create datasaaslab_subs
+npx wrangler d1 execute datasaaslab_subs --local --persist-to .wrangler/state --file db/subscriptions.sql
+```
+
+1. Build and run Pages locally:
+
+```bash
+npm run build
+npx wrangler pages dev dist --persist-to .wrangler/state
+```
+
+1. Test the endpoint:
+
+```bash
+curl -X POST http://127.0.0.1:8788/api/subscribe \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  --data 'email=test@example.com&locale=en&scope=site&sourcePath=/en/blog/'
+```
+
+If you see `no such table: subscriptions`, re-apply the schema with the same `--persist-to` directory.
+
+---
+
 ## 👤 Author
 Simoncjl
 Data Engineer · Data Platform Architect · SaaS App Builder

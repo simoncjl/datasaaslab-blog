@@ -1,5 +1,6 @@
 name = "datasaaslab-blog"
 compatibility_date = "2026-02-17"
+compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "./dist"
 
 [vars]
@@ -11,10 +12,10 @@ SITE_URL = "https://datasaaslab.dev"
 # Add your real D1 binding locally or in your deployment workflow before deploy.
 #
 # Example template:
-[d1_databases]]
+[[d1_databases]]
 binding = "SUBSCRIPTIONS_DB"
-database_name = "replace-with-your-d1-database-name"
-database_id = "replace-with-your-d1-database-id"
+database_name = "datasaaslab_subs"
+database_id = "8d0848c5-1a0c-4bc0-a094-65349744a820"
 
 # Keep secrets out of this file. Set these with Wrangler instead:
 # - wrangler secret put MAILTRAP_API_TOKEN
