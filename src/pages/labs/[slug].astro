@@ -5,8 +5,8 @@ const preferredLocale = preferredLocaleFromAcceptLanguage(Astro.request.headers.
 const slug = Astro.params.slug;
 
 if (!slug) {
-  return Astro.redirect(`/${preferredLocale}/labs`, 302);
+  return Astro.redirect(new URL(`/${preferredLocale}/labs`, Astro.url).toString(), 302);
 }
 
-return Astro.redirect(`/${preferredLocale}/labs/${slug}`, 302);
+return Astro.redirect(new URL(`/${preferredLocale}/labs/${slug}`, Astro.url).toString(), 302);
 ---

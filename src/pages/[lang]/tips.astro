@@ -7,7 +7,7 @@ import { estimateReadingTime } from '../../lib/readingTime';
 
 const langParam = Astro.params.lang;
 if (!langParam || !LOCALES.includes(langParam as Locale)) {
-  return Astro.redirect('/fr/tips', 302);
+  return Astro.redirect(new URL('/fr/tips', Astro.url).toString(), 302);
 }
 
 const lang = langParam as Locale;
