@@ -3,5 +3,6 @@ import { preferredLocaleFromAcceptLanguage } from '../lib/i18n';
 
 export const GET: APIRoute = ({ request }) => {
   const preferredLocale = preferredLocaleFromAcceptLanguage(request.headers.get('accept-language'));
-  return Response.redirect(`/${preferredLocale}`, 302);
+  const target = new URL(`/${preferredLocale}`, request.url);
+  return Response.redirect(target, 302);
 };
