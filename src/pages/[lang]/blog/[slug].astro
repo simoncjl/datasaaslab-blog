@@ -1,4 +1,6 @@
 ---
+export const prerender = true;
+
 import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import { LOCALES, type Locale } from '../../../lib/i18n';
@@ -44,6 +46,14 @@ function extractHeadingsFromBody(body: string): TocItem[] {
   }
 
   return headings;
+}
+
+export async function getStaticPaths() {
+  const entries = await getCollection('blog', ({ data }) => !data.draft);
+  return entries.map((entry) => {
+    const slug = entry.id.split('/').pop() ?? entry.id;
+    return { params: { lang: entry.data.lang, slug } };
+  });
 }
 
 const langParam = Astro.params.lang;
