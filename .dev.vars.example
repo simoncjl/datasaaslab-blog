@@ -1,0 +1,9 @@
+# Local development only. Do not commit real values.
+# Copy to `.dev.vars` or export these through your shell when testing server endpoints locally.
+
+MAILTRAP_API_TOKEN=replace-with-your-mailtrap-api-token
+MAILTRAP_SENDER_EMAIL=replace-with-your-sender@example.com
+MAILTRAP_SENDER_NAME=DataSaaSLab
+
+# Optional if you define a real D1 binding locally during Wrangler-based development.
+# SUBSCRIPTIONS_DB=configured-via-wrangler-d1-binding

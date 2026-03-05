@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
 import LanguageSwitcher from '../components/LanguageSwitcher.astro';
+import SubscribePanel from '../components/SubscribePanel.astro';
 import { localePath, preferredLocaleFromAcceptLanguage, type Locale } from '../lib/i18n';
 
 interface Props {
@@ -81,6 +82,9 @@ const ogImageUrl = new URL(ogImage, siteUrl).toString();
 
     <footer class="site-footer">
       <div class="container footer-content">
+        <SubscribePanel locale={currentLocale} sourcePath={pathname} />
+      </div>
+      <div class="container footer-content footer-links">
         <a href="https://github.com/Simoncjl" target="_blank" rel="noopener noreferrer">GitHub: Simoncjl</a>
         <a href="https://datasaaslab.dev" target="_blank" rel="noopener noreferrer">
           datasaaslab.dev

@@ -115,6 +115,32 @@ Output directory: `/dist`
 
 Environment variable: ***SITE_URL***
 
+For newsletter subscriptions, comments, and future article follows, the app can use Cloudflare D1 and server-side email sending.
+
+Recommended Wrangler config and secrets:
+
+- Add `[[d1_databases]]` in `wrangler.toml` with binding `SUBSCRIPTIONS_DB`
+- Add `[vars]` in `wrangler.toml` for non-secret values such as `SITE_URL`
+- Set secrets with Wrangler:
+  - `wrangler secret put MAILTRAP_API_TOKEN`
+  - `wrangler secret put MAILTRAP_SENDER_EMAIL`
+  - `wrangler secret put MAILTRAP_SENDER_NAME`
+
+Apply the initial D1 schema from:
+
+`db/subscriptions.sql`
+
+For public repositories:
+
+- keep only non-secret values in `wrangler.toml`
+- keep the real Mailtrap values in Wrangler secrets
+- prefer placeholders for production D1 identifiers in git
+- use `.dev.vars` locally for testing, and keep it untracked
+
+An example local file is provided in:
+
+`.dev.vars.example`
+
 ---
 
 ## 👤 Author
